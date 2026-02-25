@@ -41,7 +41,7 @@
 //!
 //! assert_eq!(path!(PathBuf::new() / "b"), PathBuf::new().join("b"));
 //! ```
-//! 
+//!
 //! [`pathlib.Path`]: https://docs.python.org/3/library/pathlib.html#basic-use
 //! [`Path`]: https://doc.rust-lang.org/std/path/struct.Path.html
 //! [`PathBuf`]: https://doc.rust-lang.org/std/path/struct.PathBuf.html

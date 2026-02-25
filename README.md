@@ -1,7 +1,7 @@
 path_macro
 ==========
 
-[![Build Status](https://api.travis-ci.org/zertosh/path_macro.svg?branch=master)](https://travis-ci.org/zertosh/path_macro)
+[![Build Status](https://github.com/zertosh/path_macro/actions/workflows/ci.yml/badge.svg)](https://github.com/zertosh/path_macro/actions/workflows/ci.yml)
 [![Latest Version](https://img.shields.io/crates/v/path_macro.svg)](https://crates.io/crates/path_macro)
 [![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/path_macro)
 
@@ -44,6 +44,9 @@ fn main() {
 
     #[cfg(windows)]
     assert_eq!(p, Path::new("a\\x\\y\\z"));
+    
+    let p2 = path!("a" / "x" / "y" / "z");
+    assert_eq!(p, p2);
 }
 ```
 
