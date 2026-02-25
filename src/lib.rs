@@ -17,10 +17,11 @@
 //! ```
 //!
 //! The `path!` macro provides a similar API for Rust paths without having
-//! to overload [`Path`] or [`PathBuf`].
+//! to overload [`Path`] or [`PathBuf`]. `path!` works for any combination
+//! of `&str`, `String`, `&Path`, and `PathBuf`.
 //!
 //! ```
-//! use std::path::Path;
+//! use std::path::{Path, PathBuf};
 //!
 //! use path_macro::path;
 //!
@@ -31,8 +32,16 @@
 //!
 //! #[cfg(windows)]
 //! assert_eq!(p, Path::new("a\\x\\y\\z"));
-//! ```
 //!
+//! let p2 = path!("a" / "x" / "y" / "z");
+//! assert_eq!(p, p2);
+//!
+//! let p3 = path!("a" / Path::new("x") / Path::new("y") / "z");
+//! assert_eq!(p, p3);
+//!
+//! assert_eq!(path!(PathBuf::new() / "b"), PathBuf::new().join("b"));
+//! ```
+//! 
 //! [`pathlib.Path`]: https://docs.python.org/3/library/pathlib.html#basic-use
 //! [`Path`]: https://doc.rust-lang.org/std/path/struct.Path.html
 //! [`PathBuf`]: https://doc.rust-lang.org/std/path/struct.PathBuf.html
@@ -59,12 +68,33 @@ macro_rules! __tokenize_path {
         $crate::__tokenize_path!([$(($($component)+))* ($($cur)+)])
     };
 
-    ([$(($($component:tt)+))*]) => {{
-        let mut path = ::std::path::PathBuf::new();
+    ([($($first:tt)+) ($($second:tt)+) $(($($rest:tt)+))*]) => {{
+        let mut path = <_ as ::std::convert::AsRef<::std::path::Path>>::as_ref(
+            &($($first)+)
+        ).to_path_buf();
+        path.push(
+            <_ as ::std::convert::AsRef<::std::path::Path>>::as_ref(
+                &($($second)+)
+            )
+        );
         $(
-            path.push(&($($component)+));
+            path.push(
+                <_ as ::std::convert::AsRef<::std::path::Path>>::as_ref(
+                    &($($rest)+)
+                )
+            );
         )*
         path
+    }};
+
+    ([($($first:tt)+)]) => {{
+        <_ as ::std::convert::AsRef<::std::path::Path>>::as_ref(
+            &($($first)+)
+        ).to_path_buf()
+    }};
+
+    ([]) => {{
+        ::std::path::PathBuf::new()
     }};
 }
 
@@ -118,5 +148,68 @@ mod tests {
         assert_eq!(p, Path::new(r"../a/b/c/d"));
         #[cfg(windows)]
         assert_eq!(p, Path::new(r"../a/b\c/d"));
+    }
+
+    #[test]
+    fn test_path_macro_variable_first_arg() {
+        use std::path::{Path, PathBuf};
+
+        let expected = PathBuf::from("a/b/c");
+
+        let base: &str = "a";
+        let p = path!(base / "b" / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+
+        let base: String = String::from("a");
+        let p = path!(base / "b" / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+
+        let base: &Path = Path::new("a");
+        let p = path!(base / "b" / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+
+        let base: PathBuf = PathBuf::from("a");
+        let p = path!(base / "b" / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+    }
+
+    #[test]
+    fn test_path_macro_variable_successive_args() {
+        use std::path::{Path, PathBuf};
+
+        let expected = PathBuf::from("a/b/c");
+
+        let component: String = String::from("b");
+        let p = path!("a" / component / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+
+        let component: &str = "b";
+        let p = path!("a" / component / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+
+        let component: &Path = Path::new("b");
+        let p = path!("a" / component / "c");
+        #[cfg(unix)]
+        assert_eq!(p, expected);
+    }
+
+    #[test]
+    fn test_path_macro_mixed_variables() {
+        use std::path::{Path, PathBuf};
+
+        let expected = PathBuf::from("a/b/c");
+
+        let base: String = String::from("a");
+        let mid: &Path = Path::new("b");
+        let end: &str = "c";
+        let p = path!(base / mid / end);
+        #[cfg(unix)]
+        assert_eq!(p, expected);
     }
 }
